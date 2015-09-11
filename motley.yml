@@ -1,0 +1,14 @@
+id: B70cDykkAbgsdRaW
+afterware: "afterware/*.js"
+collections: "collections/*.js"
+controllers: "controllers/*.js"
+middleware: "middleware/*.js"
+plugins: "plugins/*.js"
+public: "build/**/*"
+views:
+  - "views/**/*.hbs"
+  - "views/**/*.handlebars"
+  - "views/**/*.md"
+  - "views/**/*.markdown"
+port: 3000
+title: React Redux Motley Boilerplate

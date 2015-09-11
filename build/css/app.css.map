@@ -1,0 +1,1 @@
+{"version":3,"sources":["components/counter.less","app.css"],"names":[],"mappings":"AAAA;EAEI,aAAA;CCAH;ADFD;EAKI,cAAA;CCAH","file":"app.css","sourcesContent":[".counter {\n  h2 {\n    color: green;\n  }\n  button {\n    padding: 30px;\n  }\n}",".counter h2 {\n  color: green;\n}\n.counter button {\n  padding: 30px;\n}\n"],"sourceRoot":"/source/"}
