@@ -2,24 +2,27 @@ var path = require('path')
 var webpack = require('webpack')
 
 module.exports = function (options) {
+  var rootDir = path.resolve(__dirname, 'src', 'js')
+
   // Initialize conf.
   var conf = {
     cache: true,
-    context: path.resolve(__dirname, 'src', 'js'),
+    context: rootDir,
     entry: {
       app: [
         './app'
       ],
       vendors: [
         'babel/polyfill',
+        'lodash',
         'react',
         'react-redux',
         'redux'
       ]
     },
     output: {
-      path: path.resolve(__dirname, 'build', 'js'),
-      filename: 'app.js',
+      path: path.resolve(__dirname, 'build'),
+      filename: 'js/app.js',
       publicPath: '/'
     },
     resolve: {
@@ -27,17 +30,17 @@ module.exports = function (options) {
     },
     module: {
       loaders: [
-        { test: /\.js?$/, loaders: ['babel?stage=0&optional[]=runtime'], exclude: [/node_modules/] }
+        { test: /\.js?$/, loaders: ['babel'], include: rootDir }
       ]
     },
     plugins: [
       new webpack.NoErrorsPlugin(),
-      new webpack.optimize.CommonsChunkPlugin('vendors', 'vendors.js')
+      new webpack.optimize.CommonsChunkPlugin('vendors', 'js/vendors.js')
     ]
   }
 
   // Set root.
-  conf.root = conf.output.path
+  conf.root = rootDir
 
   // Enable sourcemaps.
   conf.devtool = 'sourcemap'
@@ -57,28 +60,11 @@ module.exports = function (options) {
     )
   }
 
-  // Development.
-  if (options.dev) {
-    conf.debug = true
-    conf.plugins = conf.plugins.concat([
-      new webpack.DefinePlugin({
-        'process.env': {
-          'BROWSER': JSON.stringify(true),
-          'NODE_ENV': JSON.stringify('development')
-        }
-      })
-    ])
-  }
-
   // Development Sever.
-  if (options.devserver) {
-    conf.devServer = {
-      hot: true
-    }
+  if (options.development) {
     conf.debug = true
     conf.entry.app = conf.entry.app.concat([
-      'webpack/hot/dev-server',
-      'webpack-dev-server/client?http://localhost:8080/'
+      'webpack-hot-middleware/client'
     ])
     conf.plugins = conf.plugins.concat([
       new webpack.DefinePlugin({

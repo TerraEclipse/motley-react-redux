@@ -10,10 +10,12 @@ var plumber = require('gulp-plumber')
 var runSequence = require('run-sequence')
 var sourcemaps = require('gulp-sourcemaps')
 var webpack = require('webpack')
-var WebpackDevServer = require('webpack-dev-server')
-var webpackconf = require('./webpack-conf')
+var webpackconf = require('./webpack.config')
 var BrowserSync = require('browser-sync')
 var browserSync
+
+const BS_PORT = 3000
+const MOT_PORT = 3003
 
 // Clean ./build folder.
 gulp.task('clean:build', function (cb) {
@@ -37,19 +39,14 @@ gulp.task('copy:public', function () {
 gulp.task('browser-sync', function () {
   browserSync = BrowserSync.create()
   browserSync.init({
-    proxy: 'http://localhost:8080',
+    port: BS_PORT,
+    proxy: 'http://localhost:' + MOT_PORT,
     open: false,
     notify: false,
     files: [
       'build/**/*.html'
     ]
   })
-})
-
-// Watch ./public for changes.
-gulp.task('watch:public', function (cb) {
-  gulp.watch('src/public/**/*', {interval: 2000}, ['copy:public'])
-  cb()
 })
 
 // Compile LESS stylesheets.
@@ -77,12 +74,6 @@ gulp.task('build:less', function () {
   return stream
 })
 
-// Watch ./styles for changes.
-gulp.task('watch:styles', function (cb) {
-  gulp.watch('src/styles/**/*', {interval: 300}, ['build:less'])
-  cb()
-})
-
 // Webpack production build.
 gulp.task('webpack:build', ['build'], function (cb) {
   var conf = webpackconf({production: true})
@@ -96,93 +87,71 @@ gulp.task('webpack:build', ['build'], function (cb) {
   })
 })
 
-// Webpack development build.
-gulp.task('webpack:build-dev', ['build'], function (cb) {
-  var conf = webpackconf({dev: true})
-  var compiler = webpack(conf)
-
-  compiler.run(function (err, stats) {
-    if (err) throw new gulpUtil.PluginError('webpack:build-dev', err)
-    gulpUtil.log('[webpack:build-dev]', stats.toString({
-      colors: true
-    }))
-    cb()
-  })
-})
-
-// Webpack development server.
-gulp.task('webpack:dev-server', function (cb) {
-  var conf = webpackconf({devserver: true})
-  var compiler = webpack(conf)
-  var server = new WebpackDevServer(compiler, {
-    contentBase: conf.output.path,
-    publicPath: conf.output.publicPath,
-    stats: {
-      colors: true
-    },
-    hot: true,
-    historyApiFallback: true
-  })
-
-  server.listen(8080, 'localhost', function (err) {
-    if (err) throw new gulpUtil.PluginError('webpack-dev-server', err)
-    gulpUtil.log('[webpack-dev-server]', 'http://localhost:8080/')
-  })
-})
-
 // Motley task helper.
 const motley = {
   instance: {},
   cmd: path.join(__dirname, 'node_modules', '.bin', 'motley'),
-  args: ['-p', '3005'],
+  args: ['-p', MOT_PORT],
   env: _.extend(process.env, {NODE_ENV: 'development'}),
   start: function (callback) {
-    motley.instance = spawn(motley.cmd, motley.args, {env: motley.env})
-    motley.instance.stdout.pipe(process.stdout)
-    motley.instance.stderr.pipe(process.stderr)
-    gulpUtil.log(gulpUtil.colors.cyan('Started'), 'motley server (PID:', motley.instance.pid, ')')
-    if (callback) callback()
+    if (!motley.instance.pid) {
+      motley.instance = spawn(motley.cmd, motley.args, {env: motley.env})
+      motley.instance.stdout.pipe(process.stdout)
+      motley.instance.stderr.pipe(process.stderr)
+      gulpUtil.log(gulpUtil.colors.cyan('Started'), 'motley server ( PID:', motley.instance.pid, ')')
+      // @todo Wait until app actually starts.
+      if (callback) callback()
+    } else {
+      if (callback) callback()
+    }
   },
   stop: function (callback) {
     if (motley.instance.pid) {
       motley.instance.on('exit', function () {
         gulpUtil.log(gulpUtil.colors.red('Stopped'), 'motley server ( PID:', motley.instance.pid, ')')
+        motley.instance = {}
         if (callback) callback()
       })
-      return motley.instance.kill('SIGINT')
+      motley.instance.kill('SIGINT')
+    } else {
+      if (callback) callback()
     }
-    if (callback) callback()
   },
-  restart: function (event) {
+  restart: function (callback) {
     motley.stop(function () {
-      motley.start()
+      motley.start(callback)
     })
   }
 }
 
-// Motley server.
+// Motley development server.
 gulp.task('motley', motley.start)
+
+// Restart Motley server.
+gulp.task('motley:restart', motley.restart)
+
+// Watch ./public for changes.
+gulp.task('watch:public', function () {
+  gulp.watch('src/public/**/*', {interval: 2000}, ['copy:public'])
+})
+
+// Watch ./styles for changes.
+gulp.task('watch:styles', function () {
+  gulp.watch('src/styles/**/*', {interval: 300}, ['build:less'])
+})
+
+// Watch all the things.
+gulp.task('watch', ['watch:public', 'watch:styles'])
 
 // General build.
 gulp.task('build', function (cb) {
   runSequence('clean:build', ['copy:public', 'build:less'], cb)
 })
 
-// Watch all the things.
-gulp.task('watch', ['watch:public', 'watch:styles'])
-
-// The development server (the recommended option for development)
-gulp.task('default', function (cb) {
-  runSequence('build', 'browser-sync', 'watch', 'webpack:dev-server', cb)
-})
-
-// Build and watch cycle (another option for development)
-// Advantage: No server required, can run app = require(filesystem
-// Disadvantage: Requests are not blocked until bundle is available,
-//               can serve an old app on refresh
-gulp.task('build-dev', ['webpack:build-dev'], function (cb) {
-  gulp.watch(['./src/**/*'], ['webpack:build-dev'])
-})
-
 // Production
 gulp.task('build-prod', ['webpack:build'])
+
+// Default (Development)
+gulp.task('default', function (cb) {
+  runSequence('build', 'browser-sync', 'motley', 'watch', cb)
+})
