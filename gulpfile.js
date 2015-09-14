@@ -1,3 +1,6 @@
+var path = require('path')
+var spawn = require('child_process').spawn
+var _ = require('lodash')
 var rimraf = require('rimraf')
 var gulp = require('gulp')
 var gulpUtil = require('gulp-util')
@@ -126,6 +129,39 @@ gulp.task('webpack:dev-server', function (cb) {
     gulpUtil.log('[webpack-dev-server]', 'http://localhost:8080/')
   })
 })
+
+// Motley task helper.
+const motley = {
+  instance: {},
+  cmd: path.join(__dirname, 'node_modules', '.bin', 'motley'),
+  args: ['-p', '3005'],
+  env: _.extend(process.env, {NODE_ENV: 'development'}),
+  start: function (callback) {
+    motley.instance = spawn(motley.cmd, motley.args, {env: motley.env})
+    motley.instance.stdout.pipe(process.stdout)
+    motley.instance.stderr.pipe(process.stderr)
+    gulpUtil.log(gulpUtil.colors.cyan('Started'), 'motley server (PID:', motley.instance.pid, ')')
+    if (callback) callback()
+  },
+  stop: function (callback) {
+    if (motley.instance.pid) {
+      motley.instance.on('exit', function () {
+        gulpUtil.log(gulpUtil.colors.red('Stopped'), 'motley server ( PID:', motley.instance.pid, ')')
+        if (callback) callback()
+      })
+      return motley.instance.kill('SIGINT')
+    }
+    if (callback) callback()
+  },
+  restart: function (event) {
+    motley.stop(function () {
+      motley.start()
+    })
+  }
+}
+
+// Motley server.
+gulp.task('motley', motley.start)
 
 // General build.
 gulp.task('build', function (cb) {

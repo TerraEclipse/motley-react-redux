@@ -6,6 +6,7 @@
     "start": "npm run dev",
     "dev": "./node_modules/.bin/gulp",
     "build": "./node_modules/.bin/gulp build-prod",
+    "motley": "./node_modules/.bin/gulp motley",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {
@@ -33,6 +34,7 @@
     "gulp-sourcemaps": "^1.5.2",
     "gulp-util": "^3.0.6",
     "html-webpack-plugin": "^1.6.0",
+    "motley": "^1.6.0",
     "react-hot-loader": "^2.0.0-alpha-2",
     "rimraf": "^2.4.1",
     "run-sequence": "^1.1.1",
