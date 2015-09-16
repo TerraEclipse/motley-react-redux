@@ -11,7 +11,7 @@ class Counter extends React.Component {
   render () {
     return (
       <div className='counter'>
-        <h2>{this.props.count}</h2>
+        <h2>A: {this.props.count}</h2>
         <p>
           <button onClick={() => this.props.increment()}>
             Up

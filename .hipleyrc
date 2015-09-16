@@ -1,0 +1,11 @@
+{
+  "cmd": "motley -p 3003",
+  "proxy": 3003,
+  "vendors": [
+    "babel/polyfill",
+    "lodash",
+    "react",
+    "react-redux",
+    "redux"
+  ]
+}
